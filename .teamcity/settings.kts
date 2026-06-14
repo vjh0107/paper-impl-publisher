@@ -1,44 +1,73 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
-
-/*
-The settings script is an entry point for defining a TeamCity
-project hierarchy. The script should contain a single call to the
-project() function with a Project instance or an init function as
-an argument.
-
-VcsRoots, BuildTypes, Templates, and subprojects can be
-registered inside the project using the vcsRoot(), buildType(),
-template(), and subProject() methods respectively.
-
-To debug settings scripts in command-line, run the
-
-    mvnDebug org.jetbrains.teamcity:teamcity-configs-maven-plugin:generate
-
-command and attach your debugger to the port 8000.
-
-To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
--> Tool Windows -> Maven Projects), find the generate task node
-(Plugins -> teamcity-configs -> teamcity-configs:generate), the
-'Debug' option is available in the context menu for the task.
-*/
 
 version = "2026.1"
 
 project {
-
-    buildType(Build)
+    buildType(BumpPaperVersion)
+    buildType(Publish)
 }
 
-object Build : BuildType({
-    name = "Build"
+object BumpPaperVersion : BuildType({
+    name = "Bump Paper Version"
+    description = "Detects the latest stable Paper and commits the bump to gradle.properties"
 
     vcs {
         root(DslContext.settingsRoot)
     }
 
+    params {
+        password("env.GITHUB_TOKEN", "%github.token%", display = ParameterDisplay.HIDDEN)
+    }
+
+    steps {
+        script {
+            name = "Detect and bump paper.version"
+            scriptContent = "bash scripts/bump-paper-version.sh"
+        }
+    }
+
+    triggers {
+        schedule {
+            schedulingPolicy = cron {
+                minutes = "0"
+                hours = "*/6"
+            }
+            branchFilter = "+:<default>"
+            triggerBuild = always()
+            withPendingChangesOnly = false
+        }
+    }
+})
+
+object Publish : BuildType({
+    name = "Publish"
+    description = "Publishes paper-impl to Nexus when gradle.properties changes on the default branch"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+
+    params {
+        param("env.NEXUS_USERNAME", "vjh0107")
+        password("env.NEXUS_PASSWORD", "credentialsJSON:f702f75c-65dc-4d75-a035-cb0179b7f1ea", display = ParameterDisplay.HIDDEN)
+    }
+
+    steps {
+        gradle {
+            name = "Publish paper-impl"
+            tasks = "publishPaperImpl"
+            gradleParams = "--no-daemon --stacktrace"
+        }
+    }
+
     triggers {
         vcs {
+            triggerRules = "+:gradle.properties"
+            branchFilter = "+:<default>"
         }
     }
 })

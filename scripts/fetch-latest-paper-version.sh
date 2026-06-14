@@ -8,7 +8,7 @@ version="$(curl -fsS --max-time 20 "$METADATA" \
   | sort -V | tail -n1)"
 
 if [ -z "$version" ]; then
-  echo "No stable Paper dev bundle version found" >&2
+  echo "No stable Paper version found" >&2
   exit 1
 fi
 
