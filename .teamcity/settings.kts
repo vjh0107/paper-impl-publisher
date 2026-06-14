@@ -7,6 +7,10 @@ import jetbrains.buildServer.configs.kotlin.triggers.vcs
 version = "2026.1"
 
 project {
+    params {
+        password("github.token", "credentialsJSON:df922120-1ae4-45cd-9f30-a6ce7e86675d")
+    }
+
     buildType(BumpPaperVersion)
     buildType(Publish)
 }
@@ -20,7 +24,7 @@ object BumpPaperVersion : BuildType({
     }
 
     params {
-        password("env.GITHUB_TOKEN", "%github.token%", display = ParameterDisplay.HIDDEN)
+        password("env.GITHUB_TOKEN", "credentialsJSON:919ad344-a80a-4139-8c4f-c785dd11512d", display = ParameterDisplay.HIDDEN)
     }
 
     steps {
