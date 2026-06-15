@@ -1,4 +1,5 @@
 import kr.junhyung.papermc.build.ExtractPaperJar
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.Base64
@@ -47,6 +48,23 @@ publishing {
             artifact(extractPaperImpl.flatMap { it.outputJar })
             artifact(extractPaperImpl.flatMap { it.sourcesJar }) {
                 classifier = "sources"
+            }
+
+            pom.withXml {
+                val dependencies = asNode().appendNode("dependencies")
+                mojangMappedServer.incoming.resolutionResult.root.dependencies
+                    .asSequence()
+                    .filterIsInstance<ResolvedDependencyResult>()
+                    .flatMap { it.selected.dependencies }
+                    .filterIsInstance<ResolvedDependencyResult>()
+                    .mapNotNull { it.selected.moduleVersion }
+                    .forEach { id ->
+                        dependencies.appendNode("dependency").apply {
+                            appendNode("groupId", id.group)
+                            appendNode("artifactId", id.name)
+                            appendNode("version", id.version)
+                        }
+                    }
             }
         }
     }
