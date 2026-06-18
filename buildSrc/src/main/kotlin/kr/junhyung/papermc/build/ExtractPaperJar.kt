@@ -42,27 +42,29 @@ abstract class ExtractPaperJar @Inject constructor(layout: ProjectLayout) : Defa
         val serverJar = jars.maxByOrNull { it.length() }!!
 
         val mainJar = outputJar.get().asFile
-        mainJar.parentFile.mkdirs()
-        serverJar.copyTo(mainJar, overwrite = true)
-        logger.lifecycle("Extracted ${serverJar.name} (${serverJar.length()} bytes)")
-
         val sources = sourcesJar.get().asFile
-        var count = 0
+        mainJar.parentFile.mkdirs()
+
+        var sourceCount = 0
         JarFile(serverJar).use { jar ->
-            JarOutputStream(sources.outputStream().buffered()).use { out ->
-                jar.entries().asSequence()
-                    .filter { !it.isDirectory && it.name.endsWith(".java") }
-                    .forEach { entry ->
-                        out.putNextEntry(ZipEntry(entry.name))
-                        jar.getInputStream(entry).use { it.copyTo(out) }
-                        out.closeEntry()
-                        count++
-                    }
+            JarOutputStream(mainJar.outputStream().buffered()).use { classesOut ->
+                JarOutputStream(sources.outputStream().buffered()).use { sourcesOut ->
+                    jar.entries().asSequence()
+                        .filter { !it.isDirectory }
+                        .forEach { entry ->
+                            val isSource = entry.name.endsWith(".java")
+                            val out = if (isSource) sourcesOut else classesOut
+                            out.putNextEntry(ZipEntry(entry.name))
+                            jar.getInputStream(entry).use { it.copyTo(out) }
+                            out.closeEntry()
+                            if (isSource) sourceCount++
+                        }
+                }
             }
         }
-        require(count > 0) {
+        require(sourceCount > 0) {
             "No .java sources found in ${serverJar.name}"
         }
-        logger.lifecycle("Extracted $count source files (${sources.length()} bytes)")
+        logger.lifecycle("Repackaged ${serverJar.name}: classes -> ${mainJar.name}, $sourceCount sources -> ${sources.name}")
     }
 }
