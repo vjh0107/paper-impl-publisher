@@ -14,7 +14,7 @@ changeBuildType(RelativeId("BumpPaperVersion")) {
             password("env.GITHUB_TOKEN", "credentialsJSON:919ad344-a80a-4139-8c4f-c785dd11512d", display = ParameterDisplay.HIDDEN)
         }
         update {
-            password("env.GITHUB_TOKEN", "credentialsJSON:57b4cb1b-5f12-4d22-b7cb-2fb16b6cf9af", display = ParameterDisplay.HIDDEN)
+            password("env.GITHUB_TOKEN", "credentialsJSON:61ccbc4c-ce8f-4508-b63b-4c1cdb899793", display = ParameterDisplay.HIDDEN)
         }
         add {
             password("github.token", "credentialsJSON:61ccbc4c-ce8f-4508-b63b-4c1cdb899793")
