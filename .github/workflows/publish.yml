@@ -30,7 +30,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Publish paper-impl
-        run: ./gradlew publishPaperImpl --no-daemon --stacktrace
+        run: ./gradlew publishPaperImpl --no-daemon --stacktrace -Ppaperweight.experimental.genSources=true
         env:
           NEXUS_USERNAME: vjh0107
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
