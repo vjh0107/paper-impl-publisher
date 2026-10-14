@@ -13,4 +13,3 @@ if [ -z "$version" ]; then
 fi
 
 echo "$version"
-echo "##teamcity[setParameter name='paper.version.latest' value='$version']"

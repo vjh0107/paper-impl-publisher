@@ -1,0 +1,37 @@
+name: Bump Paper Version
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: bump-paper-version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      bumped: ${{ steps.bump.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Detect and bump paper.version
+        id: bump
+        run: |
+          before="$(git rev-parse HEAD)"
+          bash scripts/bump-paper-version.sh
+          if [ "$(git rev-parse HEAD)" != "$before" ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: bump
+    if: needs.bump.outputs.bumped == 'true'
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit

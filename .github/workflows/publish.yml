@@ -1,0 +1,36 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths: [gradle.properties]
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Publish paper-impl
+        run: ./gradlew publishPaperImpl --no-daemon --stacktrace
+        env:
+          NEXUS_USERNAME: vjh0107
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
