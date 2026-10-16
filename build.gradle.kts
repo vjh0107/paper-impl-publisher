@@ -1,5 +1,6 @@
 import kr.junhyung.papermc.build.ExtractPaperJar
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
+import org.gradle.api.attributes.Category
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.Base64
@@ -51,20 +52,35 @@ publishing {
             }
 
             pom.withXml {
-                val dependencies = asNode().appendNode("dependencies")
-                mojangMappedServer.incoming.resolutionResult.root.dependencies
+                val (platforms, libraries) = mojangMappedServer.incoming.resolutionResult.root.dependencies
                     .asSequence()
                     .filterIsInstance<ResolvedDependencyResult>()
                     .flatMap { it.selected.dependencies }
                     .filterIsInstance<ResolvedDependencyResult>()
-                    .mapNotNull { it.selected.moduleVersion }
-                    .forEach { id ->
-                        dependencies.appendNode("dependency").apply {
+                    .partition { it.isPlatform() }
+
+                val root = asNode()
+                if (platforms.isNotEmpty()) {
+                    val managed = root.appendNode("dependencyManagement").appendNode("dependencies")
+                    platforms.mapNotNull { it.selected.moduleVersion }.forEach { id ->
+                        managed.appendNode("dependency").apply {
                             appendNode("groupId", id.group)
                             appendNode("artifactId", id.name)
                             appendNode("version", id.version)
+                            appendNode("type", "pom")
+                            appendNode("scope", "import")
                         }
                     }
+                }
+
+                val dependencies = root.appendNode("dependencies")
+                libraries.mapNotNull { it.selected.moduleVersion }.forEach { id ->
+                    dependencies.appendNode("dependency").apply {
+                        appendNode("groupId", id.group)
+                        appendNode("artifactId", id.name)
+                        appendNode("version", id.version)
+                    }
+                }
             }
         }
     }
@@ -91,6 +107,12 @@ tasks.named("publishPaperImplPublicationToNexusRepository").configure {
     onlyIf("paper-impl is not yet published") {
         !paperImplAlreadyPublished(devBundleVersion)
     }
+}
+
+fun ResolvedDependencyResult.isPlatform(): Boolean {
+    val attributes = resolvedVariant.attributes
+    val category = attributes.keySet().firstOrNull { it.name == Category.CATEGORY_ATTRIBUTE.name } ?: return false
+    return attributes.getAttribute(category).toString() in setOf(Category.REGULAR_PLATFORM, Category.ENFORCED_PLATFORM)
 }
 
 fun paperImplAlreadyPublished(version: String): Boolean {
